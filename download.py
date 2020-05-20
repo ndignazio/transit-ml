@@ -1,3 +1,5 @@
+import censusdata
+import pandas as pd
 # Example: downloads names and codes for all counties in the state of Illinois
 geographies = censusdata.geographies(censusdata.censusgeo([('state', '17'), 
                                                            ('county', '*')]), 

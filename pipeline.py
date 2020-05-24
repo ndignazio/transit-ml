@@ -3,6 +3,7 @@ import numpy as np
 import geopandas as gpd
 from matplotlib import pyplot as plt
 import seaborn as sns
+
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, precision_score, recall_score
@@ -10,23 +11,64 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
+
 import datetime
+import censusdata
 
 # Config: Dictionaries of models and hyperparameters
 MODELS = {
-    'LogisticRegression': LogisticRegression(), 
-    'LinearSVC': LinearSVC(), 
+    'LogisticRegression': LogisticRegression(),
+    'LinearSVC': LinearSVC(),
     'GaussianNB': GaussianNB()
 }
 
 GRID = {
-    'LogisticRegression': [{'penalty': x, 'C': y, 'random_state': 0, 'max_iter': 5000} 
+    'LogisticRegression': [{'penalty': x, 'C': y, 'random_state': 0, 'max_iter': 5000}
                            for x in ('l2', 'none') \
                            for y in (0.01, 0.1, 1, 10, 100)],
     'GaussianNB': [{'priors': None}],
     'LinearSVC': [{'C': x, 'random_state': 0, 'max_iter': 5000} \
                   for x in (0.01, 0.1, 1, 10, 100)]
 }
+
+def get_supplemental_acs_data(years, state, data_columns,
+                              place="*", data_aliases=None):
+    '''
+    Get 1-year supplemental American Community Survey data for given location
+        and year(s)
+
+    Inputs:
+        years (list of integers): years from which to pull data
+        state (string): encoding of state for which to pull data
+        place (string): encoding of census-designated 'place' for which to
+            pull data
+        data_columns (list of strings): data to pull
+        data_aliases (dictionary; keys and values both strings): mapping of
+            encoded data columns to descriptive names. Note that these
+            descriptive names will be the headers of the output DataFrame
+
+    (For more information on Census geographies, please visit this link:
+        https://www.census.gov/data/developers/geography.html)
+
+    Output:
+        A pandas dataframe including all years of data, and headers with
+            prescribed names
+    '''
+    results_df = pd.DataFrame(columns=data_aliases.values())
+    results_df['year'] = ""
+    for year in years:
+        df = censusdata.download("acsse", year,
+                                censusdata.censusgeo([("state", state),
+                                                    ("place", place)]),
+                                                    data_columns)
+
+        df = df.rename(columns=data_aliases)
+        df['year'] = year
+
+        results_df = results_df.append(df)
+
+    return results_df
+
 
 def read_data(filename):
     '''
@@ -54,7 +96,7 @@ def parse(column):
     dates = {}
     for date in column.unique():
         dates[date] = pd.to_datetime(date)
-        
+
     return column.map(dates)
 
 def describe(df):
@@ -93,15 +135,15 @@ def train_test(df, predictors, target, test_size=0.20, random_seed=1234):
     random_seed (int): random seed for reproducibility
     '''
 
-    x_train, x_test, y_train, y_test = train_test_split(predictors, target, 
-                                                        test_size=test_size, 
+    x_train, x_test, y_train, y_test = train_test_split(predictors, target,
+                                                        test_size=test_size,
                                                         random_state=random_seed)
 
     return (x_train, x_test, y_train, y_test)
 
 def impute(df, columns, replacement=None):
     '''
-    Imputes missing values in continuous variables with the sample 
+    Imputes missing values in continuous variables with the sample
     median of that variable (taken from the training set).
     Inputs: df (DataFrame)
     columns (list): column names
@@ -147,8 +189,8 @@ def encode(x_train, x_test, column):
     Performs one-hot encoding of categorical variable, with necessary
     adjustments between training and test sets. The original column is
     dropped.
-        1) If there is a value in the training set that is not in the 
-        test set, we initialize a column of zeros in the test set. 
+        1) If there is a value in the training set that is not in the
+        test set, we initialize a column of zeros in the test set.
         2) If there is a value in the test set that is not in the
         training set, we remove the record containing this value from
         the test set.
@@ -172,7 +214,7 @@ def encode(x_train, x_test, column):
     train_dummies.columns = train_dummies.columns.astype(str)
     test_dummies.columns = test_dummies.columns.astype(str)
 
-    for col in train_dummies:                                      
+    for col in train_dummies:
         if col not in test_dummies:
             test_dummies[col] = 0
 
@@ -195,7 +237,7 @@ def encoder(x_train, x_test, columns):
 
     for col in columns:
         x_train, x_test = encode(x_train, x_test, col)
-    
+
     return x_train, x_test
 
 def discretize(series, bounds, labels):
@@ -214,7 +256,7 @@ def discretize(series, bounds, labels):
 def fit_predict(x_train, x_test, y_train, model):
 
     model.fit(x_train, y_train)
-    return model.predict(x_test)  
+    return model.predict(x_test)
 
 
 def grid_search(x_train, x_test, y_train, y_test, models=MODELS, params=GRID):
@@ -231,39 +273,38 @@ def grid_search(x_train, x_test, y_train, y_test, models=MODELS, params=GRID):
     '''
     start = datetime.datetime.now()
 
-    # Convert target variables to ndarray 
+    # Convert target variables to ndarray
     y_test = np.ravel(y_test)
     y_train = np.ravel(y_train)
 
     # Initialize results data frame
     results = pd.DataFrame(columns=['Model', 'Parameters', 'Accuracy', 'Precision', 'Recall'])
 
-    # Loop over models 
-    for model_key in MODELS.keys(): 
-        
-        # Loop over parameters 
-        for params in GRID[model_key]: 
+    # Loop over models
+    for model_key in MODELS.keys():
+
+        # Loop over parameters
+        for params in GRID[model_key]:
             print("Training model:", model_key, "|", params)
-            
-            # Create model 
+
+            # Create model
             model = MODELS[model_key]
             model.set_params(**params)
-            
-            # Predict on testing set 
+
+            # Predict on testing set
             predictions = fit_predict(x_train, x_test, y_train, model)
 
-            # Evaluate predictions 
+            # Evaluate predictions
             accuracy = accuracy_score(y_test, predictions)
             precision = precision_score(y_test, predictions)
             recall = recall_score(y_test, predictions)
-             
-            # Store results in your results data frame 
+
+            # Store results in your results data frame
             results = results.append({'Model': model_key, 'Parameters': params, 'Accuracy': accuracy,
                                       'Precision': precision, 'Recall': recall}, ignore_index=True)
-            
+
     # End timer
     stop = datetime.datetime.now()
     print("Time Elapsed:", stop - start)
 
-    return results        
-
+    return results

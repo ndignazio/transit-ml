@@ -74,7 +74,8 @@ columns = {
          "B03003_002E": "Not Hispanic or Latino Population",
          "B03003_003E": "Hispanic or Latino Population",
          "B19013_001E": "Median Income", "B08513_001E": "Means of Transport to Work: Total"
-         "B08513_002E": "Speak English Only", "B08513_003E": "Speak Spanish",
+         "B08513_002E": "Speak English Only", 
+         "B08513_003E": "Speak Spanish",
          "B08513_004E": "Speak English 'Very Well'",
          "B08513_005E": "Speak English 'Less Than Very Well'", "B08513_006E": "Speak Other Languages",
          # not sure if 025-030 are necessary?

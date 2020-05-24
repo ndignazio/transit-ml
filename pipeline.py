@@ -42,7 +42,9 @@ def get_supplemental_acs_data(years, state, data_columns,
         state (string): encoding of state for which to pull data
         place (string): encoding of census-designated 'place' for which to
             pull data
-        data_columns (list of strings): data to pull
+        data_columns (list of strings): data to pull. See this link for 2018
+            column encodings:
+            https://api.census.gov/data/2018/acs/acsse/variables.html
         data_aliases (dictionary; keys and values both strings): mapping of
             encoded data columns to descriptive names. Note that these
             descriptive names will be the headers of the output DataFrame

@@ -69,6 +69,8 @@ def get_supplemental_acs_data(years, state, data_columns,
 
         results_df = results_df.append(df)
 
+    results_df = results_df.infer_objects()
+
     return results_df
 
 
@@ -124,6 +126,77 @@ def correlate(df):
     Output: correlation table
     '''
     return df.corr()
+
+def explore_df(df):
+    '''
+    Get summary stats and sample of dataframe, by calling
+        explore_df_summary_stats and explore_df_sample functions
+    '''
+    explore_df_summary_stats(df)
+    print("--------------------------------------------------------------")
+    explore_df_sample(df)
+
+
+def explore_df_summary_stats(df):
+    '''
+    Given a dataframe, print its shape and various summary statistics
+
+    Inputs:
+        df: A pandas dataframe
+
+    Outputs:
+        - Sentence stating # of rows and columns in dataframe
+        - A dataframe with summary statistics for all quantitative columns
+        - A listing of all columns with NA or Null values (and how many)
+        - A listing of all columns with negative minimum values (and what
+            that value is)
+    '''
+    rows, columns = df.shape
+    print("The dataframe has {:,} rows and {:,} columns.".format(rows,
+                                                                 columns))
+    print("--------------------------------------------------------------")
+
+    df_stats = df.describe()
+    print("Detailed descriptive statistics of quantitative columns:")
+    display(df_stats)
+
+    print("--------------------------------------------------------------")
+
+    print("Quantitative columns with null/NA values:")
+    for col in df_stats.columns:
+        num_null = rows - df_stats[col]['count']
+        if num_null > 0:
+            print("\nColumn: {}".format(col))
+            print("Number of null/NA values: {}".format(num_null))
+
+    print("--------------------------------------------------------------")
+
+    print("Quantitative columns with negative minimum values:")
+    for col in df_stats.columns:
+        min_val = df_stats[col]['min']
+        if min_val < 0:
+            print("\nColumn: {}".format(col))
+            print("Min value: {:,}".format(min_val))
+
+def explore_df_sample(df):
+    '''
+    Given a dataframe, print the types of each column, along with several
+        rows of the actual dataframe
+
+    Input:
+        df: A pandas dataframe
+
+    Output:
+        A pandas Series with the type of each column, and a smaller version
+            of the input dataframe (with the first 5 rows)
+    '''
+    print("Column types:\n")
+    print(df.dtypes)
+
+    print("--------------------------------------------------------------")
+
+    print("First five rows of dataframe:")
+    display(df.head())
 
 
 def train_test(df, predictors, target, test_size=0.20, random_seed=1234):

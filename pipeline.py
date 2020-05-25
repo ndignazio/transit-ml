@@ -31,19 +31,26 @@ GRID = {
                   for x in (0.01, 0.1, 1, 10, 100)]
 }
 
-def get_supplemental_acs_data(years, state, data_columns,
-                              place="*", data_aliases=None):
+def get_acs_data(survey_type, years, state, data_columns, county="*",
+                 place="*", tract="*", data_aliases=None):
     '''
-    Get 1-year supplemental American Community Survey data for given location
+    Get American Community Survey data for given survey type, location
         and year(s)
 
     Inputs:
+        survey_type (string): type of American Community Survey (note that
+            'acs5' is for the Five-Year ACS data, 'acs1' is One-Year, and
+            'acsse' is the One-Year Supplemental)
         years (list of integers): years from which to pull data
         state (string): encoding of state for which to pull data
+        county (string): encoding of county for which to pull data
         place (string): encoding of census-designated 'place' for which to
             pull data
+        tract (string): encoding of tract for which to pull data
         data_columns (list of strings): names of data columns to pull from
-            ACS. See this link for 2018 column encodings:
+            ACS. See below links for 2018 column encodings:
+            https://api.census.gov/data/2018/acs/acs5/variables.html
+            https://api.census.gov/data/2018/acs/acs1/variables.html
             https://api.census.gov/data/2018/acs/acsse/variables.html
         data_aliases (dictionary; keys and values both strings): mapping of
             encoded data columns to descriptive names. Note that these
@@ -56,15 +63,31 @@ def get_supplemental_acs_data(years, state, data_columns,
         A pandas dataframe including all years of data, and headers with
             prescribed names
     '''
-    results_df = pd.DataFrame(columns=data_aliases.values())
+    subgroup_str = {
+    'acs5': 'tract',
+    'acs1': 'county',
+    'acsse': 'place'
+    }
+
+    subgroup_var = {
+    'acs5': tract,
+    'acs1': county,
+    'acsse': place
+    }
+
+    if data_aliases:
+        results_df = pd.DataFrame(columns=data_aliases.values())
+    else:
+        results_df = pd.DataFrame(columns=data_columns)
     results_df['year'] = ""
     for year in years:
-        df = censusdata.download("acsse", year,
+        df = censusdata.download(survey_type, year,
                                 censusdata.censusgeo([("state", state),
-                                                    ("place", place)]),
-                                                    data_columns)
-
-        df = df.rename(columns=data_aliases)
+                                                      (subgroup_str[survey_type],
+                                                      subgroup_var[survey_type])]),
+                                                      data_columns)
+        if data_aliases:
+            df = df.rename(columns=data_aliases)
         df['year'] = year
 
         results_df = results_df.append(df)

@@ -1,5 +1,6 @@
 import censusdata
 import pandas as pd
+import pipeline
 
 SURVEY = 'acs5'
 STATE = '17'
@@ -72,7 +73,7 @@ COL_MAPPING = {
          "GEO_ID": "GEO_ID"
 }
 
-acs5 = pipeline.get_acs_data(SURVEY, YEARS, state=state,
+acs5 = pipeline.get_acs_data(SURVEY, YEARS, state=STATE,
                                    data_columns=list(COL_MAPPING.keys()),
                                   data_aliases=COL_MAPPING)
 

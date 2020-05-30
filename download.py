@@ -87,7 +87,7 @@ acs5 = pd.DataFrame()
 for v in geographies.values():
     ( (_, _) , (_, county_code) ) = v.params()
     df = censusdata.download("acs5", 2018, censusdata.censusgeo(
-        [("state", "17"), ("county", county_code), ("block group", "*")]), ["B02001_001E"]).reset_index()
+        [("state", "17"), ("county", county_code), ("block group", "*")]), ["GEO_ID"]).reset_index()
     acs5 = acs5.append(df, ignore_index=True)
 
 

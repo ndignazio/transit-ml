@@ -73,15 +73,29 @@ COL_MAPPING = {
          "GEO_ID": "GEO_ID"
 }
 
+'''
 acs5 = pipeline.get_acs_data(SURVEY, YEARS, state=STATE,
                                    data_columns=list(COL_MAPPING.keys()),
                                   data_aliases=COL_MAPPING)
+'''
+
+#CALLING API FOR BLOCKGROUP DATA
+geographies = censusdata.geographies(censusdata.censusgeo([('state', '17'),
+    ('county', '*')]), 'acs5', 2018)
+
+acs5 = pd.DataFrame()
+for v in geographies.values():
+    ( (_, _) , (_, county_code) ) = v.params()
+    df = censusdata.download("acs5", 2018, censusdata.censusgeo(
+        [("state", "17"), ("county", county_code), ("block group", "*")]), ["B02001_001E"]).reset_index()
+    acs5 = acs5.append(df, ignore_index=True)
+
 
 # Example: downloads names and FIPS codes for all counties in the state of Illinois
 # geographies = censusdata.geographies(censusdata.censusgeo([('state', '17'),
 #                                                            ('county', '*')]),
-#                                     'acs5', 2015)
-# <<<<<<< HEAD
+#                                      'acs5', 2015)
+
 # # downloads county-level demographic data for all counties in the state of
 # # Illinois using 1-year estimates (more recent, less precise)
 # acs1_county = censusdata.download("acs1", 2018,
@@ -170,8 +184,7 @@ acs5 = pipeline.get_acs_data(SURVEY, YEARS, state=STATE,
 # }
 # acs1_county = acs1_county.rename(columns=columns)
 # acs5_tract = acs5_tract.rename(columns=columns)
-# =======
-# >>>>>>> eab83b6f1a3683eb055ff28c3158154ffc5ea42d
+
 
 # using 1-year supplemental estimates
 # acsse = censusdata.download("acsse", 2018, censusdata.censusgeo([("state", "17"),

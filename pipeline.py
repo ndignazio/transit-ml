@@ -32,7 +32,7 @@ GRID = {
 }
 
 def get_acs_data(survey_type, years, state, data_columns, county="*",
-                 place="*", tract="*", data_aliases=None):
+                 place="*", blockgroup="*", data_aliases=None):
     '''
     Get American Community Survey data for given survey type, location
         and year(s)
@@ -64,13 +64,13 @@ def get_acs_data(survey_type, years, state, data_columns, county="*",
             prescribed names
     '''
     subgroup_str = {
-    'acs5': 'tract',
+    'acs5': 'block group',
     'acs1': 'county',
     'acsse': 'place'
     }
 
     subgroup_var = {
-    'acs5': tract,
+    'acs5': blockgroup,
     'acs1': county,
     'acsse': place
     }

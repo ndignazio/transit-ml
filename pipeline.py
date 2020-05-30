@@ -31,7 +31,7 @@ GRID = {
                   for x in (0.01, 0.1, 1, 10, 100)]
 }
 
-def get_acs_data(survey_type, years, state, data_columns, county="*",
+def get_acs_data(survey_type, years, state, data_columns, county,
                  place="*", blockgroup="*", data_aliases=None):
     '''
     Get American Community Survey data for given survey type, location

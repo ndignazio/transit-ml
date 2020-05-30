@@ -1,5 +1,6 @@
 import censusdata
 import pandas as pd
+import geopandas as gpd
 import pipeline
 
 SURVEY = 'acs5'
@@ -90,6 +91,38 @@ for v in geographies.values():
         [("state", "17"), ("county", county_code), ("block group", "*")]), ["GEO_ID"]).reset_index()
     acs5 = acs5.append(df, ignore_index=True)
 
+
+#LINKING ACS DATA WITH TRANSIT SCORE
+def acs_transitscore(asc5_df):
+  '''
+  Links acs and transit score data by performign the following tasks.
+    - Extracts blockgroup FIPS code
+    - Loads shape files for blockgroup and places
+    - Performs a spatial join on blockgroup and places
+    - Merge acs data with the blockgroup_places geopandas DataFrame
+    - Loads csv of transit scores for all available Illinois cities 
+    - Merge with transit score csv
+
+  (We should probably still rename some columns here.)
+
+  Inputs:
+    acs5_df (pandas DataFrame)
+  Outputs:
+    (full pandas DataFrame with )
+  '''
+acs5 = acs5.rename(columns={'index': 'censusgeo'})
+acs5['bg_GEOID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
+
+blockgroups = gpd.read_file('bg_shape/tl_2018_17_bg.shp')
+places = gpd.read_file('places_shape/tl_2018_17_place.shp')
+blockgroups = blockgroups[['GEOID', 'NAMELSAD', 'geometry']]
+places = places[['GEOID', 'NAME', 'NAMELSAD', 'geometry']]
+
+blockgroups_places = gpd.sjoin(blockgroups, places, how="inner", op="intersects")
+df = pd.merge(acs5, blockgroups_places, left_on='bg_GEOID', right_on='GEOID_left')
+ts = pd.read_csv('transit_score.csv')
+
+return pd.merge(df, ts, how='inner', left_on='NAME', right_on='city')
 
 # Example: downloads names and FIPS codes for all counties in the state of Illinois
 # geographies = censusdata.geographies(censusdata.censusgeo([('state', '17'),

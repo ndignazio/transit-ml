@@ -31,66 +31,62 @@ GRID = {
                   for x in (0.01, 0.1, 1, 10, 100)]
 }
 
-def get_acs_data(survey_type, years, state, data_columns, county,
-                 place="*", blockgroup="*", data_aliases=None):
+def get_acs_5_data(year, state, data_aliases):
     '''
-    Get American Community Survey data for given survey type, location
-        and year(s)
+    Get American Community Survey 5-year data at block group level
 
     Inputs:
-        survey_type (string): type of American Community Survey (note that
-            'acs5' is for the Five-Year ACS data, 'acs1' is One-Year, and
-            'acsse' is the One-Year Supplemental)
-        years (list of integers): years from which to pull data
+        year (integer): year from which to pull data
         state (string): encoding of state for which to pull data
-        county (string): encoding of county for which to pull data
-        place (string): encoding of census-designated 'place' for which to
-            pull data
-        tract (string): encoding of tract for which to pull data
-        data_columns (list of strings): names of data columns to pull from
-            ACS. See below links for 2018 column encodings:
+        data_aliases (dictionary; keys and values both strings): mapping of
+            encoded data columns to pull from ACS with their descriptive names.
+            Note that these descriptive names will be the headers of the output
+            DataFrame. See below links for 2018 column encodings:
             https://api.census.gov/data/2018/acs/acs5/variables.html
             https://api.census.gov/data/2018/acs/acs1/variables.html
             https://api.census.gov/data/2018/acs/acsse/variables.html
-        data_aliases (dictionary; keys and values both strings): mapping of
-            encoded data columns to descriptive names. Note that these
-            descriptive names will be the headers of the output DataFrame
 
     (For more information on Census geographies, please visit this link:
         https://www.census.gov/data/developers/geography.html)
 
     Output:
-        A pandas dataframe including all years of data, and headers with
-            prescribed names
+        A pandas dataframe with ACS data
     '''
-    subgroup_str = {
-    'acs5': 'block group',
-    'acs1': 'county',
-    'acsse': 'place'
-    }
-
-    subgroup_var = {
-    'acs5': blockgroup,
-    'acs1': county,
-    'acsse': place
-    }
-
+    # Initialize dataframe
     if data_aliases:
         results_df = pd.DataFrame(columns=data_aliases.values())
     else:
         results_df = pd.DataFrame(columns=data_columns)
+
+    # print("Data columns are...", data_aliases.keys())
+
     results_df['year'] = ""
-    for year in years:
-        df = censusdata.download(survey_type, year,
-                                censusdata.censusgeo([("state", state),
-                                                      (subgroup_str[survey_type],
-                                                      subgroup_var[survey_type])]),
-                                                      data_columns)
-        if data_aliases:
-            df = df.rename(columns=data_aliases)
+
+    # Get Census data and load into dataframe
+    geographies = censusdata.geographies(censusdata.censusgeo([('state', state),
+        ('county', '*')]), 'acs5', year)
+
+    # i = 0
+    for v in list(geographies.values()):
+        ( (_, _) , (_, county_code) ) = v.params()
+        # print("County code is...", county_code)
+        df = censusdata.download("acs5", year, censusdata.censusgeo(
+            [("state", state), ("county", county_code), ("tract", "*")]),
+            list(data_aliases.keys()), key="e62f1cebce1c8d3afece25fc491fbec7271a588b").reset_index()
+        # print("On loop...", i)
+
+    # for year in years:
+    #     df = censusdata.download(survey_type, year,
+    #                             censusdata.censusgeo([("state", state),
+    #                                                   (subgroup_str[survey_type],
+    #                                                   subgroup_var[survey_type])]),
+    #                                                   data_columns)
+        # if data_aliases:
+        df = df.rename(columns=data_aliases)
         df['year'] = year
 
-        results_df = results_df.append(df)
+        results_df = results_df.append(df, ignore_index=True)
+        # i+=1
 
     results_df = results_df.infer_objects()
 

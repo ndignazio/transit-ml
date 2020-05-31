@@ -1,5 +1,7 @@
 import geopandas as gpd
 # read shapefiles
+blockgroups = gpd.read_file('tl_2019_17_bg.shp')
+places = gpd.read_file('tl_2019_17_place.shp')
 blockgroups = gpd.read_file('tl_2018_17_bg.shp')
 places = gpd.read_file('tl_2018_17_place.shp')
 # feel free to inspect columns of original datasets to see if there is anything of interest

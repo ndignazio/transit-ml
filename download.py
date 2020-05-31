@@ -204,7 +204,7 @@ def acs_transitscore(asc5):
         (full pandas DataFrame with transit score data)
     '''
     acs5 = acs5.rename(columns={'index': 'censusgeo'})
-    acs5['bg_GEOID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
+    acs5['tr_GEOID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
 
     tracts = gpd.read_file('shape_tracts/tl_2018_17_tract.shp')
     places = gpd.read_file('places_shape/tl_2018_17_place.shp')
@@ -212,7 +212,7 @@ def acs_transitscore(asc5):
     places = places[['GEOID', 'NAME', 'NAMELSAD', 'geometry']]
 
     tracts_places = gpd.sjoin(tracts, places, how="inner", op="intersects")
-    df = pd.merge(acs5, tracts_places, left_on='bg_GEOID', right_on='GEOID_left')
+    df = pd.merge(acs5, tracts_places, left_on='tr_GEOID', right_on='GEOID_left')
     ts = pd.read_csv('transit_score.csv')
 
     return pd.merge(df, ts, how='inner', left_on='NAME', right_on='city')

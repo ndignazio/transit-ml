@@ -188,7 +188,7 @@ acs5_processed = acs5.drop(list(CENSUS_DATA_COLS.values()), axis=1)
 
 
 #LINKING ACS DATA WITH TRANSIT SCORE
-def acs_transitscore(asc5):
+def acs_transitscore(acs5):
     '''
     Links acs and transit score data by performign the following tasks.
         - Extracts blockgroup FIPS code

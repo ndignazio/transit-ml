@@ -181,10 +181,12 @@ def explore_df_summary_stats(df):
 
     print("--------------------------------------------------------------")
 
+    cols_with_null = []
     print("Quantitative columns with null/NA values:")
     for col in df_stats.columns:
         num_null = rows - df_stats[col]['count']
         if num_null > 0:
+            cols_with_null.append(col)
             print("\nColumn: {}".format(col))
             print("Number of null/NA values: {}".format(num_null))
 
@@ -196,6 +198,8 @@ def explore_df_summary_stats(df):
         if min_val < 0:
             print("\nColumn: {}".format(col))
             print("Min value: {:,}".format(min_val))
+
+    return cols_with_null
 
 def explore_df_sample(df):
     '''

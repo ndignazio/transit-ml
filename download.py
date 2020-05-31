@@ -1,5 +1,6 @@
 import censusdata
 import pandas as pd
+import geopandas as gpd
 import pipeline
 
 STATE = '17'
@@ -187,35 +188,65 @@ acs5['renter_rate'] = acs5['home_rent_yes'] / acs5['home_own_status']
 acs5_processed = acs5.drop(list(CENSUS_DATA_COLS.values()), axis=1)
 
 
-#LINKING ACS DATA WITH TRANSIT SCORE
-def acs_transitscore(acs5):
+def merge_data_sources(acs5):
     '''
-    Links acs and transit score data by performign the following tasks.
-        - Extracts blockgroup FIPS code
-        - Loads shape files for blockgroup and places
-        - Performs a spatial join on blockgroup and places
-        - Merge acs data with the blockgroup_places geopandas DataFrame
-        - Loads csv of transit scores for all available Illinois cities 
-        - Merge with transit score csv
-    (We should probably still rename some columns here.)
+    Links acs5 data with transit score and job data. Calculates population 
+    density and job density.
     Inputs:
         acs5 (pandas DataFrame)
     Outputs:
         (full pandas DataFrame with transit score data)
     '''
-    acs5 = acs5.rename(columns={'index': 'censusgeo'})
-    acs5['tr_GEOID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
+    #Extracting census tract ID
+    acs5['tract_GEO_ID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
 
+    #Loading tracts
     tracts = gpd.read_file('shape_tracts/tl_2018_17_tract.shp')
+    tracts = tracts[['GEOID', 'NAMELSAD', 'ALAND', 'geometry']] \
+                        .rename(columns={'GEOID': 'tract_GEO_ID', 'NAMELSAD': 'tract_name',
+                       'ALAND': 'tract_area'})
+
+    #Loading places
     places = gpd.read_file('shape_places/tl_2018_17_place.shp')
-    tracts = tracts[['GEOID', 'NAMELSAD', 'ALAND', 'geometry']]
-    places = places[['GEOID', 'NAME', 'NAMELSAD', 'geometry']]
+    places = places[['GEOID', 'NAME', 'NAMELSAD', 'geometry']] \
+                        .rename(columns={'GEOID': 'place_GEO_ID', 'NAME': 'place_name',
+                       'NAMELSAD': 'place_name_and_type'})
 
+    #Merging tracts and places
     tracts_places = gpd.sjoin(tracts, places, how="inner", op="intersects")
-    df = pd.merge(acs5, tracts_places, left_on='tr_GEOID', right_on='GEOID_left')
-    ts = pd.read_csv('transit_score.csv')
 
-    return pd.merge(df, ts, how='inner', left_on='NAME', right_on='city')
+    #Merging acs data with traces/places
+    df = pd.merge(acs5, tracts_places, left_on='tract_GEO_ID', right_on='tract_GEO_ID')
+
+    #Importing transit score csv and merging
+    ts = pd.read_csv('transit_score.csv').rename(columns={'nearby_routes': 'num_nearby_routes', \
+         'bus': 'num_bus_routes', 'rail': 'num_rail_routes', 'other': 'num_other_routes', \
+         'city': 'city_from_ts', 'description': 'transit_description', 'summary': 'transit_summary', \
+         'Lat': 'lat', 'Lon': 'lon'})
+    ts['tsplace_GEO_ID'] = ts['GEO_ID'].apply(lambda x: x[9:])
+    ts = ts.drop(columns=['censusgeo', 'Place_Type', 'state', 'GEO_ID'])
+    df = pd.merge(df, ts, how='inner', left_on='place_GEO_ID', right_on='tsplace_GEO_ID')
+
+    #Importing jobs by tract and merging
+    jobs = pd.read_csv('il_jobs_by_tract_2017.csv')
+    jobs = jobs[['id', 'label', 'c000']] \
+            .rename(columns={'id': 'job_tract_GEO_ID', 'label': 'job_tract_label',
+                             'c000': 'num_jobs'})
+    jobs['job_tract_GEO_ID'] = jobs['job_tract_GEO_ID'].astype(str)
+    df = pd.merge(jobs, df, how='inner', left_on='job_tract_GEO_ID', right_on='tract_GEO_ID')
+
+    #Averaging transit score for census tracts
+    df = df.groupby('GEO_ID').mean().reset_index()
+
+    #Calculating population density and job density
+    df['job_density'] = df['num_jobs'] / ((df['tract_area'])/1000000)
+    df['pop_density'] = df['race_total'] / ((df['tract_area'])/1000000)
+
+    #Taking care of null values using pipline methods
+    cols_with_null = explore_df_summary_stats(df)
+    final_df, replacement = impute(df, cols_with_null)
+
+    return final_df
 
 
 # acs5 = pipeline.get_acs_data(SURVEY, YEARS, state=STATE,

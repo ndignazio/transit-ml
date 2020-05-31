@@ -71,8 +71,8 @@ def get_acs_5_data(year, state, data_aliases):
         ( (_, _) , (_, county_code) ) = v.params()
         # print("County code is...", county_code)
         df = censusdata.download("acs5", year, censusdata.censusgeo(
-            [("state", state), ("county", county_code), ("block group", "*")]),
-            list(data_aliases.keys())).reset_index()
+            [("state", state), ("county", county_code), ("tract", "*")]),
+            list(data_aliases.keys()), key="e62f1cebce1c8d3afece25fc491fbec7271a588b").reset_index()
         # print("On loop...", i)
 
     # for year in years:

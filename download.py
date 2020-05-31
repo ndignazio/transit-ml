@@ -207,8 +207,8 @@ def acs_transitscore(asc5):
     acs5['tr_GEOID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
 
     tracts = gpd.read_file('shape_tracts/tl_2018_17_tract.shp')
-    places = gpd.read_file('places_shape/tl_2018_17_place.shp')
-    tracts = tracts[['GEOID', 'NAMELSAD', 'geometry']]
+    places = gpd.read_file('shape_places/tl_2018_17_place.shp')
+    tracts = tracts[['GEOID', 'NAMELSAD', 'ALAND', 'geometry']]
     places = places[['GEOID', 'NAME', 'NAMELSAD', 'geometry']]
 
     tracts_places = gpd.sjoin(tracts, places, how="inner", op="intersects")

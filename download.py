@@ -2,7 +2,7 @@ import censusdata
 import pandas as pd
 import geopandas as gpd
 import pipeline
-
+'''
 STATE = '17'
 YEAR = 2018
 
@@ -186,7 +186,7 @@ acs5['self_employed'] = (acs5["industry_self_emp_non_incorp"] +
 acs5['median_income'] = acs5['income_median']
 acs5['renter_rate'] = acs5['home_rent_yes'] / acs5['home_own_status']
 acs5_processed = acs5.drop(list(CENSUS_DATA_COLS.values()), axis=1)
-
+'''
 
 def merge_data_sources(acs5):
     '''
@@ -242,11 +242,7 @@ def merge_data_sources(acs5):
     df['job_density'] = df['num_jobs'] / ((df['tract_area'])/1000000)
     df['pop_density'] = df['race_total'] / ((df['tract_area'])/1000000)
 
-    #Taking care of null values using pipline methods
-    cols_with_null = explore_df_summary_stats(df)
-    final_df, replacement = impute(df, cols_with_null)
-
-    return final_df
+    return df
 
 
 # acs5 = pipeline.get_acs_data(SURVEY, YEARS, state=STATE,

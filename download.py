@@ -267,6 +267,9 @@ def merge_data_sources(acs5):
     df.drop(index_names , inplace=True)
     print('df num columns with zero population: {}'.format(len(df[df['race_total']==0])))
 
+    #Changing NaN values to zero (occur for small census tracts)
+    df = df.fillna(0)
+
     return df
 
 

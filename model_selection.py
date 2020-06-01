@@ -7,7 +7,7 @@ import pandas as pd
 import pipeline as pl
 
 # loading the data
-filename = 'merged_data.pkl'
+filename = 'data.pkl'
 data = pl.read_data(filename)
 # CENSUS_DATA_COLS is in download.py - maybe we should make it a standalone json for loading?
 data = data.drop(list(CENSUS_DATA_COLS.values()), axis=1)

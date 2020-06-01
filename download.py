@@ -199,6 +199,10 @@ def merge_data_sources(acs5):
     '''
     #Extracting census tract ID
     acs5['tract_GEO_ID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
+    print('initial acs5 shape: {}'.format(acs5.shape[0]))
+    print('inital number of colums: {}'.format(len(acs5.columns)))
+    print("--------------------------------------------------------------")
+
 
     #Loading tracts
     tracts = gpd.read_file('shape_tracts/tl_2018_17_tract.shp')
@@ -217,6 +221,10 @@ def merge_data_sources(acs5):
 
     #Merging acs data with traces/places
     df = pd.merge(acs5, tracts_places, left_on='tract_GEO_ID', right_on='tract_GEO_ID')
+    print('df shape after merging with tracts_place: {}'.format(df.shape[0]))
+    print('df number of colums: {}'.format(len(df.columns)))
+    print("--------------------------------------------------------------")
+
 
     #Importing transit score csv and merging
     ts = pd.read_csv('transit_score.csv').rename(columns={'nearby_routes': 'num_nearby_routes', \
@@ -226,6 +234,10 @@ def merge_data_sources(acs5):
     ts['tsplace_GEO_ID'] = ts['GEO_ID'].apply(lambda x: x[9:])
     ts = ts.drop(columns=['censusgeo', 'Place_Type', 'state', 'GEO_ID'])
     df = pd.merge(df, ts, how='inner', left_on='place_GEO_ID', right_on='tsplace_GEO_ID')
+    print('df shape after mergin with transit score: {}'.format(df.shape[0]))
+    print('df number of colums: {}'.format(len(df.columns)))
+    print("--------------------------------------------------------------")
+
 
     #Importing jobs by tract and merging
     jobs = pd.read_csv('il_jobs_by_tract_2017.csv')
@@ -234,13 +246,26 @@ def merge_data_sources(acs5):
                              'c000': 'num_jobs'})
     jobs['job_tract_GEO_ID'] = jobs['job_tract_GEO_ID'].astype(str)
     df = pd.merge(jobs, df, how='inner', left_on='job_tract_GEO_ID', right_on='tract_GEO_ID')
+    print('df shape after mergin with jobs data: {}'.format(df.shape[0]))
+    print('df number of colums: {}'.format(len(df.columns)))
+    print("--------------------------------------------------------------")
+    jobs_cols = set(df.columns)
 
     #Averaging transit score for census tracts
     df = df.groupby('GEO_ID').mean().reset_index()
+    print('df shape after grouping: {}'.format(df.shape[0]))
+    print('df number of colums: {}'.format(len(df.columns)))
+    print('df cols omitted becauseo of grouping: {}'.format(jobs_cols - set(df.columns)))
+    print("--------------------------------------------------------------")
 
     #Calculating population density and job density
     df['job_density'] = df['num_jobs'] / ((df['tract_area'])/1000000)
     df['pop_density'] = df['race_total'] / ((df['tract_area'])/1000000)
+
+    #Dropping rows with zero population
+    index_names = df[df['race_total']==0].index
+    df.drop(index_names , inplace=True)
+    print('df num columns with zero population: {}'.format(len(df[df['race_total']==0])))
 
     return df
 

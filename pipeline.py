@@ -14,6 +14,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score
 
 import datetime
 import censusdata
+import pickle
 
 # Config: Dictionaries of models and hyperparameters
 MODELS = {
@@ -103,7 +104,11 @@ def read_data(filename):
     data = None
 
     if ending == 'csv':
-        data = pd.read_csv(filename)
+       data = pd.read_csv(filename)
+
+    elif ending == 'pkl':
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
 
     elif ending == 'geojson':
         data = gpd.read_file(filename)

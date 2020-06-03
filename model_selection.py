@@ -68,6 +68,8 @@ params = {'regr': {'pca__n_components': np.arange(2, x_train.shape[1])},
 
 results = pd.DataFrame(columns=['params', 'mean_test_r2', 'mean_test_explained_variance', 
                                 'mean_test_neg_mean_squared_error'])
+# initialize a list of best estimators from each pipeline
+best = []
 for model, pipeline in pipelines.items():
     grid_search = GridSearchCV(estimator=pipeline, 
                   param_grid=params[model],
@@ -75,6 +77,9 @@ for model, pipeline in pipelines.items():
                   cv=10,
                   refit='r2')
     model_result = grid_search.fit(x_train, y_train)
+    best_estimator = grid_search.best_estimator_
+    best.append(best_estimator)
+    evr = grid_search.best_estimator_.named_steps['pca'].explained_variance_ratio_ 
     df = pd.DataFrame(model_result.cv_results_)
     results = results.append(df[['params', 'mean_test_r2', 
                                  'mean_test_explained_variance', 

@@ -4,10 +4,11 @@ import geopandas as gpd
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, precision_score, recall_score
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import accuracy_score, precision_score, recall_score
@@ -15,22 +16,6 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score
 import datetime
 import censusdata
 import pickle
-
-# Config: Dictionaries of models and hyperparameters
-MODELS = {
-    'LogisticRegression': LogisticRegression(),
-    'LinearSVC': LinearSVC(),
-    'GaussianNB': GaussianNB()
-}
-
-GRID = {
-    'LogisticRegression': [{'penalty': x, 'C': y, 'random_state': 0, 'max_iter': 5000}
-                           for x in ('l2', 'none') \
-                           for y in (0.01, 0.1, 1, 10, 100)],
-    'GaussianNB': [{'priors': None}],
-    'LinearSVC': [{'C': x, 'random_state': 0, 'max_iter': 5000} \
-                  for x in (0.01, 0.1, 1, 10, 100)]
-}
 
 def get_acs_5_data(year, state, data_aliases):
     '''
@@ -361,53 +346,73 @@ def fit_predict(x_train, x_test, y_train, model):
     model.fit(x_train, y_train)
     return model.predict(x_test)
 
+def grid_search_cv(pipelines, params, scoring, cv, x_train, y_train):
+    '''
+    Runs cross validation on multiple sklearn Pipeline objects.
+    Inputs: pipelines (dict) dictionary of pipeline objects
+    params (dict) parameters corresponding to pipeline objects
+    scoring (str) chosen evaluation metric name
+    cv (int) number of folds to use in cross-validation
+    x_train (DataFrame) training features
+    y_train (DataFrame) training targets
+    Returns: best (dict) a dictionary with keys as model names and values as
+    tuples with the first tuple entry as a dictionary of model parameters
+    results (DataFrame) a table of model parameters and mean test score results
+    '''
 
-def grid_search(x_train, x_test, y_train, y_test, models=MODELS, params=GRID):
-    '''
-    Performs grid search of models with selected parameters.
-    Inputs: x_train (df): training predictors
-    x_test (df): testing predictors
-    y_train (df): training target
-    y_test (df): testing target
-    models (dict): learning models
-    params (dict): parameters for each model
-    Output: results (df) a summary of results with accuracy, precision, and
-    recall scores.
-    '''
     start = datetime.datetime.now()
+    # initializing empty results dataframe
+    results = pd.DataFrame(columns=['params',
+                                    'mean_test_score'])
+    # initializing empty best dictionary
+    best = {}
+    # looping through pipelines
+    for model, pipeline in pipelines.items():
+        # performing grid search on each pipeline
+        print('Running Grid Search on {} with the following parameters: {}'.format(model, params[model]))
+        grid_search = GridSearchCV(estimator=pipeline, 
+                      param_grid=params[model],
+                      scoring=scoring,
+                      cv=cv,
+                      refit=scoring)
+        # fitting model to data
+        model_result = grid_search.fit(x_train, y_train)
+        # adding entry to best dictionary for the best model in pipeline
+        best[(model, str(grid_search.best_params_))] = grid_search.best_score_
+        # create dataframe of cross-validation results and store parameters
+        # and mean test scores
+        df = pd.DataFrame(model_result.cv_results_)
+        results = results.append(df[['params',
+                                     'mean_test_score']])
 
-    # Convert target variables to ndarray
-    y_test = np.ravel(y_test)
-    y_train = np.ravel(y_train)
-
-    # Initialize results data frame
-    results = pd.DataFrame(columns=['Model', 'Parameters', 'Accuracy', 'Precision', 'Recall'])
-
-    # Loop over models
-    for model_key in MODELS.keys():
-
-        # Loop over parameters
-        for params in GRID[model_key]:
-            print("Training model:", model_key, "|", params)
-
-            # Create model
-            model = MODELS[model_key]
-            model.set_params(**params)
-
-            # Predict on testing set
-            predictions = fit_predict(x_train, x_test, y_train, model)
-
-            # Evaluate predictions
-            accuracy = accuracy_score(y_test, predictions)
-            precision = precision_score(y_test, predictions)
-            recall = recall_score(y_test, predictions)
-
-            # Store results in your results data frame
-            results = results.append({'Model': model_key, 'Parameters': params, 'Accuracy': accuracy,
-                                      'Precision': precision, 'Recall': recall}, ignore_index=True)
-
-    # End timer
     stop = datetime.datetime.now()
     print("Time Elapsed:", stop - start)
 
-    return results
+    return best, results
+
+def find_best_model(best, neg=True):
+    '''
+    select best model out of dictionary of models, parameters, and scores
+    based on best score.
+    Input: best (dict) a dictionary with keys as model names and values as
+    tuples with the first tuple entry as a dictionary of model parameters 
+    and the second tuple entry as the mean test score of the model.
+    Returns: choice (tuple) the best model, parameters, and score
+    '''
+    choice = max(best.values())
+    if neg:
+        choice = min(best.values())
+
+    model = None
+
+    for model_params, score in best.items():
+        if neg:
+            if score > choice:
+                choice = score
+                model = model_params
+                continue
+        elif score > choice:
+            choice = score
+            model = model_params
+
+    return model, choice

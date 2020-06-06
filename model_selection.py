@@ -3,6 +3,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import LinearRegression, Lasso, Ridge, ElasticNet
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 import pandas as pd
@@ -51,10 +52,11 @@ regr = LinearRegression()
 lasso = Lasso(max_iter=5000)
 ridge = Ridge(max_iter=5000)
 en = ElasticNet(max_iter=5000)
+rf = RandomForestRegressor(random_state=0)
 pf = PolynomialFeatures()
 
 
-'''
+
 pipelines = {'regr': Pipeline([('scale', scale),
                                ('pf', pf),
                                ('regr', regr)]),
@@ -66,13 +68,18 @@ pipelines = {'regr': Pipeline([('scale', scale),
                                ('ridge', ridge)]),
             'elasticnet': Pipeline([('scale', scale),
                                     ('pf', pf),
-                                    ('en', en)])}
+                                    ('en', en)]),
+            'randomforest': Pipeline([('pf', pf),
+                                      ('rf', rf)])}
+
+pipelines = {'randomforest': Pipeline([('pf', pf),
+                                      ('rf', rf)])}
 
 
 
-hyperparameter tuning
-since data is standardized, no coefficients are greater than abs(1)
-therefore, alpha levels are between 0 and 1
+#hyperparameter tuning
+#since data is standardized, no coefficients are greater than abs(1)
+#therefore, alpha levels are between 0 and 1
 
 params = {
 'regr': {'pf__degree': [1, 2, 3]},
@@ -81,10 +88,17 @@ params = {
 'ridge': {'pf__degree': [1, 2, 3],
           'ridge__alpha': [0.0001, 0.001, 0.01, 0.1, 0.5]},
 'elasticnet': {'pf__degree': [1, 2, 3],
-               'en__alpha': [0.0001, 0.001, 0.01, 0.1, 0.5]}}
+               'en__alpha': [0.0001, 0.001, 0.01, 0.1, 0.5]},
+'randomforest': {'pf__degree': [1, 2],
+                 'rf__n_estimators': [100, 200],
+                 'rf__max_depth': [5, 10, 20]}}
+
+params = {'randomforest': {'pf__degree': [2],
+                 'rf__n_estimators': [200, 500, 1000],
+                 'rf__max_depth': [8, 10, 15]}}
 '''
 params = {
-'regr': {'pf__degree': [1, 2,]},
+'regr': {'pf__degree': [1, 2]},
 'lasso': {'pf__degree': [1, 2],
           'lasso__alpha': [0.0001, 0.001, 0.01]}
 }
@@ -95,27 +109,35 @@ pipelines = {'regr': Pipeline([('scale', scale),
             'lasso': Pipeline([('scale', scale),
                                ('pf', pf),
                                ('lasso', lasso)])}
-
+'''
 
 if __name__ == '__main__':
 
     best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', 5, x_train, y_train)
-    (model, params), score = find_best_model(best)
-    print('Best Model: {} with the following parameters: {} and a mean test score of {}'.format(model, params, score))
-    best_model_params = literal_eval(params)
-    alpha = None
-    for key, val in params.items():
-        if key.split('_')[0] in list(pipelines.keys()):
-            alpha = val
+    print(best)
+    print(results)
+    #(model, params), score = find_best_model(best)
+    #print('Best Model: {} with the following parameters: {} and a mean test score of {}'.format(model, params, score))
+    #best_model_params = literal_eval(params)
+    #alpha = None
+    #for key, val in params.items():
+        #if key.split('_')[0] in list(pipelines.keys()):
+            #alpha = val
 
 
     # run best model on whole dataset
+    '''
     pf = PolynomialFeatures(degree=best_model_params['pf__degree'], include_bias=False)
     lasso = Lasso(alpha=alpha, max_iter=10000)
     model = Pipeline([('scale', scale),
                        ('pf', pf),
                        ('lasso', lasso)])
     model.fit(x_train, y_train)
+    for i, name in enumerate(pf.get_feature_names(x_train.columns)):
+        tuples.append((name, model.named_steps['lasso'].coef_[i]))
+    df = pd.DataFrame(tuples, columns=['label', 'coefficient'])
+    df = df[df['coefficient'] != 0]
+    sorted_by_coef = sorted(tuples, key=lambda tup: tup[1])
     predictions = model.predict(x_test)
     root_mse = sqrt(mean_squared_error(y_test, predictions))
     print('Root Mean Squared Error: ' + str(root_mse))
@@ -126,3 +148,6 @@ if __name__ == '__main__':
     r2_score = r2_score(y_test, predictions)
     print('R2: ' + str(r2_score))
     # 0.8723402541626002
+    '''
+
+    

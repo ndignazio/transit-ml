@@ -121,8 +121,8 @@ def run_model_selection(k, x_train, y_train, x_test, y_test, small=True):
         pipelines = PIPELINES_SMALL
         params = PARAMS_SMALL
     else:
-        pipelines = PIPELINES_SMALL
-        params = PARAMS_SMALL
+        pipelines = PIPELINES
+        params = PARAMS
     best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', k, x_train, y_train)
     (model, best_params), score = find_best_model(best)
     cv_params = format_keynames(params)

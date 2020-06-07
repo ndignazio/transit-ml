@@ -12,7 +12,9 @@ from math import sqrt
 from ast import literal_eval
 import datetime
 import json
-from pipeline import grid_search_cv, find_best_model
+from pipeline import grid_search_cv, find_best_model, run_best_model, format_keynames
+import warnings
+warnings.filterwarnings("ignore")
 
 ## ******* NOTE FROM MIKE ****************
 ## I think any cleaning done below should be done in
@@ -23,25 +25,25 @@ filename = 'data.pkl'
 data = pl.read_data(filename)
 # dropping untransformed census columns
 with open('CENSUS_DATA_COLS.json') as f:
-    COLS = json.load(f)
-data = data.drop(list(COLS.values()), axis=1)
+    DATA_COLS = json.load(f)
+keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
+data = data._get_numeric_data()
+data[data < 0] = np.nan
+    
+#Dropping irrelevant columns
+data = data.drop(keys, axis=1)
+data = data.drop(['year', 'lat', 'lon', 'index_right', 'num_nearby_routes', 'num_bus_routes',
+            'num_rail_routes', 'num_other_routes'], axis=1)
+
 
 # defining independent and dependent variables
-features = data.drop(['year', 'lat', 'lon', 'commuting_ridership'], axis=1)
+features = data.drop(['commuting_ridership'], axis=1)
 target = data['commuting_ridership'].to_frame('commuting_ridership')
-features = features._get_numeric_data()
-features[features < 0] = np.nan
 
 # splitting data into train and test sets
 x_train, x_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=0)
 
-# dropping a few irrelevant columns
-x_train = x_train.drop(['index_right', 'num_nearby_routes', 'num_bus_routes',
-                        'num_rail_routes', 'num_other_routes'], axis=1)
-x_test = x_test.drop(['index_right', 'num_nearby_routes', 'num_bus_routes',
-                      'num_rail_routes', 'num_other_routes'], axis=1)
-
-# imputing null values with median
+# imputing null values in median income with median income
 columns = ['median_income']
 x_train, replacement = pl.impute(x_train, columns)
 x_test, replacement = pl.impute(x_test, columns, replacement=replacement)
@@ -59,99 +61,87 @@ en = ElasticNet(max_iter=5000)
 rf = RandomForestRegressor(random_state=0)
 pf = PolynomialFeatures()
 
+PIPELINES = {"regr": Pipeline([("scale", scale),
+                               ("pf", pf),
+                               ("regr", regr)]),
+            "lasso": Pipeline([("scale", scale),
+                               ("pf", pf),
+                               ("lasso", lasso)]),
+            "ridge": Pipeline([("scale", scale),
+                               ("pf", pf),
+                               ("ridge", ridge)]),
+            "elasticnet": Pipeline([("scale", scale),
+                                    ("pf", pf),
+                                    ("elasticnet", en)]),
+            "randomforest": Pipeline([("pf", pf),
+                                      ("randomforest", rf)])}
 
 
-pipelines = {'regr': Pipeline([('scale', scale),
-                               ('pf', pf),
-                               ('regr', regr)]),
-            'lasso': Pipeline([('scale', scale),
-                               ('pf', pf),
-                               ('lasso', lasso)]),
-            'ridge': Pipeline([('scale', scale),
-                               ('pf', pf),
-                               ('ridge', ridge)]),
-            'elasticnet': Pipeline([('scale', scale),
-                                    ('pf', pf),
-                                    ('en', en)]),
-            'randomforest': Pipeline([('pf', pf),
-                                      ('rf', rf)])}
-
-pipelines = {'randomforest': Pipeline([('pf', pf),
-                                      ('rf', rf)])}
-
-
-
-#hyperparameter tuning
-#since data is standardized, no coefficients are greater than abs(1)
-#therefore, alpha levels are between 0 and 1
-
-params = {
-'regr': {'pf__degree': [1, 2, 3]},
-'lasso': {'pf__degree': [1, 2, 3],
-          'lasso__alpha': [0.0001, 0.001, 0.01, 0.1, 0.5]},
-'ridge': {'pf__degree': [1, 2, 3],
-          'ridge__alpha': [0.0001, 0.001, 0.01, 0.1, 0.5]},
-'elasticnet': {'pf__degree': [1, 2, 3],
-               'en__alpha': [0.0001, 0.001, 0.01, 0.1, 0.5]},
+PARAMS = {
+'regr': {'pf__degree': [1, 2]},
+'lasso': {'pf__degree': [1, 2],
+          'lasso__alpha': [0.0001, 0.001, 0.01, 0.1]},
+'ridge': {'pf__degree': [1, 2],
+          'ridge__alpha': [0.0001, 0.001, 0.01, 0.1]},
+'elasticnet': {'pf__degree': [1, 2],
+               'en__alpha': [0.0001, 0.001, 0.01, 0.1]},
 'randomforest': {'pf__degree': [1, 2],
-                 'rf__n_estimators': [100, 200],
-                 'rf__max_depth': [5, 10, 20]}}
+                 'randomforest__n_estimators': [100, 200, 500],
+                 'randomforest__max_depth': [5, 10, 15]}}
 
-params = {'randomforest': {'pf__degree': [2],
-                 'rf__n_estimators': [200, 500, 1000],
-                 'rf__max_depth': [8, 10, 15]}}
-'''
-params = {
+
+PARAMS_SMALL = {
 'regr': {'pf__degree': [1, 2]},
 'lasso': {'pf__degree': [1, 2],
           'lasso__alpha': [0.0001, 0.001, 0.01]}
 }
 
-pipelines = {'regr': Pipeline([('scale', scale),
+PIPELINES_SMALL = {'regr': Pipeline([('scale', scale),
                                ('pf', pf),
                                ('regr', regr)]),
             'lasso': Pipeline([('scale', scale),
                                ('pf', pf),
                                ('lasso', lasso)])}
-'''
-
-if __name__ == '__main__':
-
-    best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', 5, x_train, y_train)
-    print(best)
-    print(results)
-    #(model, params), score = find_best_model(best)
-    #print('Best Model: {} with the following parameters: {} and a mean test score of {}'.format(model, params, score))
-    #best_model_params = literal_eval(params)
-    #alpha = None
-    #for key, val in params.items():
-        #if key.split('_')[0] in list(pipelines.keys()):
-            #alpha = val
 
 
-    # run best model on whole dataset
+def run_model_selection(k, x_train, y_train, x_test, y_test, small=True):
     '''
-    pf = PolynomialFeatures(degree=best_model_params['pf__degree'], include_bias=False)
-    lasso = Lasso(alpha=alpha, max_iter=10000)
-    model = Pipeline([('scale', scale),
-                       ('pf', pf),
-                       ('lasso', lasso)])
-    model.fit(x_train, y_train)
-    for i, name in enumerate(pf.get_feature_names(x_train.columns)):
-        tuples.append((name, model.named_steps['lasso'].coef_[i]))
-    df = pd.DataFrame(tuples, columns=['label', 'coefficient'])
-    df = df[df['coefficient'] != 0]
-    sorted_by_coef = sorted(tuples, key=lambda tup: tup[1])
-    predictions = model.predict(x_test)
-    root_mse = sqrt(mean_squared_error(y_test, predictions))
-    print('Root Mean Squared Error: ' + str(root_mse))
-    # 0.0515480138425091
-    normalized_root_mse = root_mse / (max(y_test) - min(y_test))
-    print('Normalized RMSE: ' + str(normalized_root_mse))
-    # 0.08043680214805388
-    r2_score = r2_score(y_test, predictions)
-    print('R2: ' + str(r2_score))
-    # 0.8723402541626002
+    Selects best model given preselected models and hyperparameters.
+    Runs smaller model for testing if small is True.
+    Inputs: k (int) specification of number of folds for k-fold cross-
+    validation
+    x_train, y_train, x_test, y_test (DataFrames) training and testing data
+    small (boolean) a flag indicating whether the user wants to use a smaller
+    pipeline for testing or the larger pipeline
+    Returns: Nothing. Prints grid search results and the results of running 
+    the best model from grid search on the entire dataset, including
+    evaluation metrics and feature importances
     '''
-
+    if small: 
+        pipelines = PIPELINES_SMALL
+        params = PARAMS_SMALL
+    else:
+        pipelines = PIPELINES_SMALL
+        params = PARAMS_SMALL
+    best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', k, x_train, y_train)
+    (model, best_params), score = find_best_model(best)
+    cv_params = format_keynames(params)
+    cv_params['Model'] = model
+    cv_params['Score'] = score
+    print('---------------------------------')
+    print('Best Model From Cross Validation')
+    print('---------------------------------')
+    print('Model: {}'.format(model))
+    for key, value in literal_eval(best_params).items():
+        print(key + ': ' + str(value))
+    results, df = run_best_model(pipelines, model, best_params, x_train, y_train, x_test, y_test)
+    print('------------------------------------------------')
+    print('Results of Running Best Model on Entire Dataset')
+    print('------------------------------------------------')
+    for key, value in results.items():
+        print(key + ': ' + str(value))
+    print('-------------------------------------------')
+    print('5 Most Important Features of the Best Model')
+    print('-------------------------------------------')
+    print(df)
     

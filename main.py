@@ -6,8 +6,10 @@ import argparse
 import pandas as pd
 import model_selection as select
 import download
+import model_selection
 
 DATA_DF = 'data.pkl'
+
 
 def go():
     '''
@@ -27,9 +29,12 @@ def go():
         data_df = download.compile_and_merge_data()
 
     ## This function doesn't exist yet
-    best_model = model_selection.find_best_model()
+    features = data.drop(['commuting_ridership'], axis=1)
+    target = data['commuting_ridership'].to_frame('commuting_ridership')
+    x_train, x_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=0)
+    model_selection.run_model_selection(5, x_train, y_train, x_test, y_test)
 
-    return best_model
+    return None
     
     ## What other functions do we need? What should our software be returning?
     ## The best model + some characteristics of that model?

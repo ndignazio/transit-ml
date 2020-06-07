@@ -29,6 +29,8 @@ def go():
     ## This function doesn't exist yet
     best_model = model_selection.find_best_model()
 
+    return best_model
+    
     ## What other functions do we need? What should our software be returning?
     ## The best model + some characteristics of that model?
 

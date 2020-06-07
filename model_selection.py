@@ -13,6 +13,10 @@ import datetime
 import json
 from pipeline import grid_search_cv, find_best_model
 
+## ******* NOTE FROM MIKE ****************
+## I think any cleaning done below should be done in
+## download.py (e.g., dropping unnecessary columns and NAs)
+
 # loading the data
 filename = 'data.pkl'
 data = pl.read_data(filename)
@@ -31,9 +35,9 @@ features[features < 0] = np.nan
 x_train, x_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=0)
 
 # dropping a few irrelevant columns
-x_train = x_train.drop(['index_right', 'num_nearby_routes', 'num_bus_routes', 
+x_train = x_train.drop(['index_right', 'num_nearby_routes', 'num_bus_routes',
                         'num_rail_routes', 'num_other_routes'], axis=1)
-x_test = x_test.drop(['index_right', 'num_nearby_routes', 'num_bus_routes', 
+x_test = x_test.drop(['index_right', 'num_nearby_routes', 'num_bus_routes',
                       'num_rail_routes', 'num_other_routes'], axis=1)
 
 # imputing null values with median

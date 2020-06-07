@@ -13,7 +13,7 @@ def go():
     '''
     Downlaod data and find best model
     '''
-    parser = argparse.ArgumentParser(description='Find best model)
+    parser = argparse.ArgumentParser(description='Get data and find best model')
     parser.add_argument('-a',
                         default=False,
                         action='store_true',
@@ -29,8 +29,8 @@ def go():
     ## This function doesn't exist yet
     best_model = model_selection.find_best_model()
 
-    ## What should our software be returning? The best model +
-    ## some characteristics of that model recommendations for action?
+    ## What other functions do we need? What should our software be returning?
+    ## The best model + some characteristics of that model?
 
 if __name__ == '__main__':
     go()

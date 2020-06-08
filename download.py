@@ -2,6 +2,7 @@ import censusdata
 import pandas as pd
 import geopandas as gpd
 import pipeline
+import data_wrangling
 
 YEAR = 2018
 STATE = '17'
@@ -25,7 +26,7 @@ def compile_and_merge_data():
     acs5 = compile_acs_data(YEAR, STATE, DATA_COLS)
     processed_acs5 = create_census_features_and_target(acs5)
 
-    return merge_data_sources(processed_acs5)
+    return data_wrangling.go(processed_acs5)
 
 
 def compile_acs_data(year, state, data_cols):
@@ -161,8 +162,9 @@ def create_census_features_and_target(acs_df):
     return acs5_processed
 
 
+'''
 def merge_data_sources(acs5):
-    '''
+    """
     Links acs5 data with transit score and job data. Calculates population
     density and job density.
 
@@ -171,7 +173,7 @@ def merge_data_sources(acs5):
 
     Outputs:
         Full pandas DataFrame with transit score data
-    '''
+    """
     #Extracting census tract ID
     acs5['tract_GEO_ID'] = acs5['GEO_ID'].apply(lambda x: x[9:])
     print('initial acs5 shape: {}'.format(acs5.shape[0]))
@@ -255,3 +257,4 @@ def merge_data_sources(acs5):
                         'num_rail_routes', 'num_other_routes'], axis=1)
 
     return df
+'''

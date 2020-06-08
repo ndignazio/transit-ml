@@ -157,7 +157,7 @@ def create_census_features_and_target(acs_df):
     acs5['renter_rate'] = acs5['home_rent_yes'] / acs5['home_own_status']
     # the following line drops original count values so that the ACS data
     # only contains the transformations above
-    acs5_processed = acs5.drop(list(DATA_COLS.values()), axis=1)
+    
 
     return acs5_processed
 
@@ -255,6 +255,8 @@ def merge_data_sources(acs5):
     #Dropping remaining irrelevant columns
     df = df.drop(['year', 'lat', 'lon', 'index_right', 'num_nearby_routes', 'num_bus_routes',
                         'num_rail_routes', 'num_other_routes'], axis=1)
+    keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
+    df = df.drop(keys, axis=1)
 
     return df
 '''

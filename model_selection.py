@@ -125,14 +125,13 @@ def run_model_selection(k, x_train, y_train, x_test, y_test, small=True):
         params = PARAMS
     best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', k, x_train, y_train)
     (model, best_params), score = find_best_model(best)
-    cv_params = format_keynames(params)
+    cv_params = format_keynames(best_params)
     cv_params['Model'] = model
-    cv_params['Score'] = score
+    cv_params['Score'] = '{0:.3f}'.format(-score)
     print('---------------------------------')
     print('Best Model From Cross Validation')
     print('---------------------------------')
-    print('Model: {}'.format(model))
-    for key, value in literal_eval(best_params).items():
+    for key, value in cv_params.items():
         print(key + ': ' + str(value))
     results, df = run_best_model(pipelines, model, best_params, x_train, y_train, x_test, y_test)
     print('------------------------------------------------')

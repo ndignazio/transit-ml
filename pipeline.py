@@ -401,13 +401,12 @@ def find_best_model(best, neg=True):
     and the second tuple entry as the mean test score of the model.
     Returns: choice (tuple) the best model, parameters, and score
     '''
+    model = None
     choice = max(best.values())
     if neg:
         choice = min(best.values())
 
     if len(best) > 1:
-        print('greater than one')
-        model = None
 
         for model_params, score in best.items():
             if neg:
@@ -420,7 +419,7 @@ def find_best_model(best, neg=True):
                 model = model_params
     else:
         model = list(best.keys())[0]
-        choice = best[model[0]]
+        choice = best[model]
 
     return model, choice
 
@@ -458,8 +457,8 @@ def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
     predictions = best_model.predict(x_test)
     metrics = {}     
     metrics['Model'] = mod                                   
-    metrics['RMSE'] = sqrt(mean_squared_error(y_test, predictions))   
-    metrics['R2'] = r2_score(y_test, predictions)
+    metrics['RMSE'] = '{0:.3f}'.format(sqrt(mean_squared_error(y_test, predictions))) 
+    metrics['R2'] = '{0:.3f}'.format(r2_score(y_test, predictions))
     tuples = []
     feature_names = best_model.named_steps['pf'].get_feature_names(x_train.columns)
     if mod == 'randomforest':

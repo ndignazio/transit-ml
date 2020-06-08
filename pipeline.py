@@ -11,8 +11,10 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import mean_squared_error, r2_score
 
+from ast import literal_eval
+from math import sqrt
 import datetime
 import censusdata
 import pickle
@@ -403,16 +405,72 @@ def find_best_model(best, neg=True):
     if neg:
         choice = min(best.values())
 
-    model = None
+    if len(best) > 1:
+        print('greater than one')
+        model = None
 
-    for model_params, score in best.items():
-        if neg:
-            if score > choice:
+        for model_params, score in best.items():
+            if neg:
+                if score > choice:
+                    choice = score
+                    model = model_params
+                    continue
+            elif score > choice:
                 choice = score
                 model = model_params
-                continue
-        elif score > choice:
-            choice = score
-            model = model_params
+    else:
+        model = list(best.keys())[0]
+        choice = best[model[0]]
 
     return model, choice
+
+def format_keynames(params):
+    '''
+    Format keynames from parameter dictionary of sklearn Pipeline.
+    Input: params (dict) parameters formatted like so: 
+           '<named_step>__<parameter>'
+    Returns: params (dict) parameter dictionary with '<named_step>__'
+    removed
+    '''
+    if not isinstance(params, dict):
+        params = literal_eval(params)
+    for key in params.keys():
+        new_key = key.split("_")[-1]
+        params[new_key] = params.pop(key)
+    return params
+
+def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
+    '''
+    Runs the best model selected from the find_best_model function.
+    Inputs: pipelines (dict) dictionary of pipeline objects
+    mod (str) type of model corresponding to pipelines dictionary
+    params (dict) parameters of the best model
+    x_train, y_train, x_test, y_test (4 Pandas DataFrames) training and testing 
+    data
+    Returns: tuple
+    first element: (dict) results of running the model on entire dataset
+    second element: (DataFrame) nonzero feature importances of model sorted in
+    ascending order
+    '''
+    best_model = pipelines[mod]
+    best_model.set_params(**literal_eval(params))
+    best_model.fit(x_train, y_train)
+    predictions = best_model.predict(x_test)
+    metrics = {}     
+    metrics['Model'] = mod                                   
+    metrics['RMSE'] = sqrt(mean_squared_error(y_test, predictions))   
+    metrics['R2'] = r2_score(y_test, predictions)
+    tuples = []
+    feature_names = best_model.named_steps['pf'].get_feature_names(x_train.columns)
+    if mod == 'randomforest':
+        for i, name in enumerate(feature_names):
+            tuples.append((name, best_model.named_steps[mod].feature_importances_[i]))
+    else:
+        for i, name in enumerate(feature_names):
+            tuples.append((name, best_model.named_steps[mod].coef_[i]))
+    sorted_by_coef = sorted(tuples, key=lambda tup: tup[1])
+    top_5 = sorted_by_coef[-5:]
+    df = pd.DataFrame(top_5, columns=['label', 'coefficient'])
+    df = df[df['coefficient'] != 0]
+    params = format_keynames(params)
+    return {**metrics, **params}, df

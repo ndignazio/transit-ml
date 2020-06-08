@@ -468,8 +468,9 @@ def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
         for i, name in enumerate(feature_names):
             tuples.append((name, best_model.named_steps[mod].coef_[i]))
     sorted_by_coef = sorted(tuples, key=lambda tup: tup[1])
+    #make absolute values before sorting
     top_5 = sorted_by_coef[-5:]
+
     df = pd.DataFrame(top_5, columns=['label', 'coefficient'])
-    df = df[df['coefficient'] != 0]
     params = format_keynames(params)
     return {**metrics, **params}, df

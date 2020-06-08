@@ -60,6 +60,7 @@ ridge = Ridge(max_iter=5000)
 en = ElasticNet(max_iter=5000)
 rf = RandomForestRegressor(random_state=0)
 pf = PolynomialFeatures()
+# add decision tree
 
 PIPELINES = {"regr": Pipeline([("scale", scale),
                                ("pf", pf),

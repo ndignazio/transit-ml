@@ -439,6 +439,7 @@ def format_keynames(params):
     return params
 
 def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
+    #{'pf__degree': 2, 'randomforest__criterion': 'mae', 'randomforest__n_estimators': 300, 'randomforest__max_depth': 15}
     '''
     Runs the best model selected from the find_best_model function.
     Inputs: pipelines (dict) dictionary of pipeline objects
@@ -454,6 +455,9 @@ def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
     best_model = pipelines[mod]
     best_model.set_params(**literal_eval(params))
     best_model.fit(x_train, y_train)
+    pkl_filename = "best_model.pkl"
+    with open(pkl_filename, 'wb') as f:
+        pickle.dump(best_model, f)
     predictions = best_model.predict(x_test)
     metrics = {}     
     metrics['Model'] = mod                                   
@@ -461,14 +465,14 @@ def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
     metrics['R2'] = '{0:.3f}'.format(r2_score(y_test, predictions))
     tuples = []
     feature_names = best_model.named_steps['pf'].get_feature_names(x_train.columns)
-    if mod == 'randomforest':
+    if mod == 'randomforest' or mod == 'decisiontree':
         for i, name in enumerate(feature_names):
             tuples.append((name, best_model.named_steps[mod].feature_importances_[i]))
     else:
         for i, name in enumerate(feature_names):
             tuples.append((name, best_model.named_steps[mod].coef_[i]))
-    sorted_by_coef = sorted(tuples, key=lambda tup: tup[1])
-    #make absolute values before sorting
+
+    sorted_by_coef = sorted(tuples, key=lambda tup: abs(tup[1]))
     top_5 = sorted_by_coef[-5:]
 
     df = pd.DataFrame(top_5, columns=['label', 'coefficient'])

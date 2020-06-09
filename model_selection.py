@@ -4,6 +4,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import LinearRegression, Lasso, Ridge, ElasticNet
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import numpy as np
 import pandas as pd
@@ -12,45 +13,12 @@ from math import sqrt
 from ast import literal_eval
 import datetime
 import json
-from pipeline import grid_search_cv, find_best_model, run_best_model, format_keynames
+from pipeline import grid_search_cv, find_best_model, run_best_model, format_keynames, read_data
 import warnings
 warnings.filterwarnings("ignore")
 
-## ******* NOTE FROM MIKE ****************
-## I think any cleaning done below should be done in
-## download.py (e.g., dropping unnecessary columns and NAs)
-
-# loading the data
-filename = 'data.pkl'
-data = pl.read_data(filename)
-# dropping untransformed census columns
 with open('CENSUS_DATA_COLS.json') as f:
     DATA_COLS = json.load(f)
-keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
-data = data._get_numeric_data()
-data[data < 0] = np.nan
-    
-#Dropping irrelevant columns
-data = data.drop(keys, axis=1)
-data = data.drop(['year', 'lat', 'lon', 'index_right', 'num_nearby_routes', 'num_bus_routes',
-            'num_rail_routes', 'num_other_routes'], axis=1)
-
-
-# defining independent and dependent variables
-features = data.drop(['commuting_ridership'], axis=1)
-target = data['commuting_ridership'].to_frame('commuting_ridership')
-
-# splitting data into train and test sets
-x_train, x_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=0)
-
-# imputing null values in median income with median income
-columns = ['median_income']
-x_train, replacement = pl.impute(x_train, columns)
-x_test, replacement = pl.impute(x_test, columns, replacement=replacement)
-
-# reshaping targets appropriately
-y_train = np.ravel(y_train)
-y_test = np.ravel(y_test)
 
 # defining models to use
 scale = StandardScaler()
@@ -58,7 +26,8 @@ regr = LinearRegression()
 lasso = Lasso(max_iter=5000)
 ridge = Ridge(max_iter=5000)
 en = ElasticNet(max_iter=5000)
-rf = RandomForestRegressor(random_state=0)
+dt = DecisionTreeRegressor()
+rf = RandomForestRegressor(random_state=0, n_jobs=-1, verbose=2)
 pf = PolynomialFeatures()
 # add decision tree
 
@@ -74,6 +43,8 @@ PIPELINES = {"regr": Pipeline([("scale", scale),
             "elasticnet": Pipeline([("scale", scale),
                                     ("pf", pf),
                                     ("elasticnet", en)]),
+            "decisiontree": Pipeline([("pf", pf),
+                                      ("decisiontree", dt)]),
             "randomforest": Pipeline([("pf", pf),
                                       ("randomforest", rf)])}
 
@@ -85,10 +56,15 @@ PARAMS = {
 'ridge': {'pf__degree': [1, 2],
           'ridge__alpha': [0.0001, 0.001, 0.01, 0.1]},
 'elasticnet': {'pf__degree': [1, 2],
-               'en__alpha': [0.0001, 0.001, 0.01, 0.1]},
-'randomforest': {'pf__degree': [1, 2],
-                 'randomforest__n_estimators': [100, 200, 500],
-                 'randomforest__max_depth': [5, 10, 15]}}
+               'elasticnet__alpha': [0.0001, 0.001, 0.01, 0.1]},
+'decisiontree': {'pf__degree': [1, 2],
+                 'decisiontree__criterion': ["mse", "friedman_mse", "mae"],
+                 'decisiontree__max_depth': [5, 10, 15, 20],
+                 'decisiontree__min_samples_split': [2, 5, 10]},
+'randomforest': {'pf__degree': [2],
+                 'randomforest__criterion': ['mae'],
+                 'randomforest__n_estimators': [300, 500],
+                 'randomforest__max_depth': [15, 20]}}
 
 
 PARAMS_SMALL = {
@@ -104,8 +80,24 @@ PIPELINES_SMALL = {'regr': Pipeline([('scale', scale),
                                ('pf', pf),
                                ('lasso', lasso)])}
 
+PIPELINES_SMALL = {"decisiontree": Pipeline([("pf", pf),
+                                      ("decisiontree", dt)])}
 
-def run_model_selection(k, x_train, y_train, x_test, y_test, small=True):
+PARAMS_SMALL = {'decisiontree': {'pf__degree': [1],
+                 'decisiontree__criterion': ["mse", "mae"],
+                 'decisiontree__max_depth': [5, 10],
+                 'decisiontree__min_samples_split': [2, 5]}}
+
+PARAMS_SMALL = {'randomforest': {'pf__degree': [2],
+                 'randomforest__criterion': ['mae'],
+                 'randomforest__n_estimators': [300, 500],
+                 'randomforest__max_depth': [15, 20]}}
+
+PIPELINES_SMALL = {"randomforest": Pipeline([("pf", pf),
+                                      ("randomforest", rf)])}
+
+
+def run_model_selection(k, filename, small=True):
     '''
     Selects best model given preselected models and hyperparameters.
     Runs smaller model for testing if small is True.
@@ -118,6 +110,23 @@ def run_model_selection(k, x_train, y_train, x_test, y_test, small=True):
     the best model from grid search on the entire dataset, including
     evaluation metrics and feature importances
     '''
+    data = read_data(filename)
+    keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
+    data = data.drop(keys, axis=1)
+
+    features = data.drop(['commuting_ridership', 'GEO_ID'], axis=1)
+    target = data['commuting_ridership'].to_frame('commuting_ridership')
+
+    # splitting data into train and test sets
+    x_train, x_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=0)
+
+    # imputing median for 1 value in median_income column
+    columns = ['median_income']
+    x_train, replacement = pl.impute(x_train, columns)
+    x_test, replacement = pl.impute(x_test, columns, replacement=replacement)
+    y_train = np.ravel(y_train)
+    y_test = np.ravel(y_test)
+
     if small: 
         pipelines = PIPELINES_SMALL
         params = PARAMS_SMALL
@@ -125,6 +134,11 @@ def run_model_selection(k, x_train, y_train, x_test, y_test, small=True):
         pipelines = PIPELINES
         params = PARAMS
     best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', k, x_train, y_train)
+    now = datetime.datetime.now()
+    filename = 'pickle_files/grid_search_results_{}.pkl'.format(str(datetime.datetime.now()))
+    results.to_pickle(filename)
+    with pd.option_context('display.max_rows', None, 'display.max_columns', 3):
+        print(results)
     (model, best_params), score = find_best_model(best)
     cv_params = format_keynames(best_params)
     cv_params['Model'] = model
@@ -144,4 +158,7 @@ def run_model_selection(k, x_train, y_train, x_test, y_test, small=True):
     print('5 Most Important Features of the Best Model')
     print('-------------------------------------------')
     print(df)
+
+if __name__ == "__main__":
+    run_model_selection(5, 'pickle_files/final_data.pkl', small=True)
     

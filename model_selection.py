@@ -29,7 +29,6 @@ en = ElasticNet(max_iter=5000)
 dt = DecisionTreeRegressor()
 rf = RandomForestRegressor(random_state=0, n_jobs=-1, verbose=2)
 pf = PolynomialFeatures()
-# add decision tree
 
 PIPELINES = {"regr": Pipeline([("scale", scale),
                                ("pf", pf),
@@ -80,24 +79,8 @@ PIPELINES_SMALL = {'regr': Pipeline([('scale', scale),
                                ('pf', pf),
                                ('lasso', lasso)])}
 
-PIPELINES_SMALL = {"decisiontree": Pipeline([("pf", pf),
-                                      ("decisiontree", dt)])}
 
-PARAMS_SMALL = {'decisiontree': {'pf__degree': [1],
-                 'decisiontree__criterion': ["mse", "mae"],
-                 'decisiontree__max_depth': [5, 10],
-                 'decisiontree__min_samples_split': [2, 5]}}
-
-PARAMS_SMALL = {'randomforest': {'pf__degree': [2],
-                 'randomforest__criterion': ['mae'],
-                 'randomforest__n_estimators': [300, 500],
-                 'randomforest__max_depth': [15, 20]}}
-
-PIPELINES_SMALL = {"randomforest": Pipeline([("pf", pf),
-                                      ("randomforest", rf)])}
-
-
-def run_model_selection(k, filename, small=True):
+def run_model_selection(k, filename, small=True, pickle=True, verbose=False):
     '''
     Selects best model given preselected models and hyperparameters.
     Runs smaller model for testing if small is True.
@@ -110,7 +93,11 @@ def run_model_selection(k, filename, small=True):
     the best model from grid search on the entire dataset, including
     evaluation metrics and feature importances
     '''
-    data = read_data(filename)
+    if pickle:
+        data = read_data(filename)
+    else:
+        data = filename
+
     keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
     data = data.drop(keys, axis=1)
 
@@ -133,32 +120,34 @@ def run_model_selection(k, filename, small=True):
     else:
         pipelines = PIPELINES
         params = PARAMS
+
     best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', k, x_train, y_train)
     now = datetime.datetime.now()
     filename = 'pickle_files/grid_search_results_{}.pkl'.format(str(datetime.datetime.now()))
     results.to_pickle(filename)
-    with pd.option_context('display.max_rows', None, 'display.max_columns', 3):
-        print(results)
     (model, best_params), score = find_best_model(best)
-    cv_params = format_keynames(best_params)
-    cv_params['Model'] = model
-    cv_params['Score'] = '{0:.3f}'.format(-score)
-    print('---------------------------------')
-    print('Best Model From Cross Validation')
-    print('---------------------------------')
-    for key, value in cv_params.items():
-        print(key + ': ' + str(value))
-    results, df = run_best_model(pipelines, model, best_params, x_train, y_train, x_test, y_test)
-    print('------------------------------------------------')
-    print('Results of Running Best Model on Entire Dataset')
-    print('------------------------------------------------')
-    for key, value in results.items():
-        print(key + ': ' + str(value))
-    print('-------------------------------------------')
-    print('5 Most Important Features of the Best Model')
-    print('-------------------------------------------')
-    print(df)
+    results, df, best_model = run_best_model(pipelines, model, best_params, x_train, y_train, x_test, y_test)
 
-if __name__ == "__main__":
-    run_model_selection(5, 'pickle_files/final_data.pkl', small=False)
-    
+    if verbose:
+
+        cv_params = format_keynames(best_params)
+        cv_params['Model'] = model
+        cv_params['Score'] = '{0:.3f}'.format(-score)
+
+        print('---------------------------------')
+        print('Best Model From Cross Validation')
+        print('---------------------------------')
+        for key, value in cv_params.items():
+            print(key + ': ' + str(value))
+        
+        print('------------------------------------------------')
+        print('Results of Running Best Model on Entire Dataset')
+        print('------------------------------------------------')
+        for key, value in results.items():
+            print(key + ': ' + str(value))
+        print('-------------------------------------------')
+        print('Feature Importances of the Best Model')
+        print('-------------------------------------------')
+        print(df)
+
+    return best_model

@@ -80,7 +80,7 @@ PIPELINES_SMALL = {'regr': Pipeline([('scale', scale),
                                ('lasso', lasso)])}
 
 
-def run_model_selection(k, filename, small=True, pickle=True, verbose=False):
+def run_model_selection(k, df, small=True, verbose=False):
     '''
     Selects best model given preselected models and hyperparameters.
     Runs smaller model for testing if small is True.
@@ -93,10 +93,7 @@ def run_model_selection(k, filename, small=True, pickle=True, verbose=False):
     the best model from grid search on the entire dataset, including
     evaluation metrics and feature importances
     '''
-    if pickle:
-        data = read_data(filename)
-    else:
-        data = filename
+    data = df
 
     keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
     data = data.drop(keys, axis=1)

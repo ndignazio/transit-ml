@@ -25,7 +25,7 @@ def create_adjusted_features_df(features_df, tscore_num_to_add):
     return new_features
 
 
-def recommend_tracts_for_action(df, model_obj, n_tracts, tscore_addition=10,
+def recommend_tracts_for_action(df, model_obj, n_tracts=30, tscore_addition=10,
                                 num_poly=None):
     '''
     Recommend top N tracts intervention consideration. These tracts
@@ -50,8 +50,6 @@ def recommend_tracts_for_action(df, model_obj, n_tracts, tscore_addition=10,
     pipeline.impute(new_df, ['median_income'])
 
     features = new_df.drop(columns=['GEO_ID', 'commuting_ridership'], axis=1)
-    # print("The number of columns in this df is...", len(features.columns.to_list()))
-    # print("The columns are...", features.columns.to_list())
     features_new_tscore = create_adjusted_features_df(features, tscore_addition)
 
     if num_poly:

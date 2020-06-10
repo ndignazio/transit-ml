@@ -147,4 +147,4 @@ def run_model_selection(k, df, small=True, verbose=False):
         print('-------------------------------------------')
         print(df)
 
-    return best_model.named_steps[model]
+    return best_model.named_steps["pf"], best_model.named_steps[model]

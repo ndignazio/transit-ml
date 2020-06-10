@@ -438,6 +438,7 @@ def format_keynames(params):
         params[new_key] = params.pop(key)
     return params
 
+
 def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
     #{'pf__degree': 2, 'randomforest__criterion': 'mae', 'randomforest__n_estimators': 300, 'randomforest__max_depth': 15}
     '''
@@ -473,7 +474,7 @@ def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
             tuples.append((name, best_model.named_steps[mod].coef_[i]))
 
     sorted_by_coef = sorted(tuples, key=lambda tup: abs(tup[1]))
-    top_5 = sorted_by_coef[-5:]
+    top_5 = sorted_by_coef
 
     df = pd.DataFrame(top_5, columns=['label', 'coefficient'])
     params = format_keynames(params)

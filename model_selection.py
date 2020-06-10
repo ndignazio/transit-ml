@@ -61,10 +61,10 @@ PARAMS = {
                  'decisiontree__criterion': ["mse", "friedman_mse", "mae"],
                  'decisiontree__max_depth': [5, 10, 15, 20],
                  'decisiontree__min_samples_split': [2, 5, 10]},
-'randomforest': {'pf__degree': [2],
-                 'randomforest__criterion': ['mae'],
-                 'randomforest__n_estimators': [300, 500],
-                 'randomforest__max_depth': [15, 20]}}
+'randomforest': {'pf__degree': [1, 2],
+                 'randomforest__criterion': ['mse', 'mae'],
+                 'randomforest__n_estimators': [100, 200, 300],
+                 'randomforest__max_depth': [5, 10, 15]}}
 
 
 PARAMS_SMALL = {
@@ -114,7 +114,7 @@ def run_model_selection(k, filename, small=True):
     keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
     data = data.drop(keys, axis=1)
 
-    features = data.drop(['commuting_ridership', 'GEO_ID'], axis=1)
+    features = data.drop(['commuting_ridership', 'GEO_ID', 'tract_area', 'num_jobs'], axis=1)
     target = data['commuting_ridership'].to_frame('commuting_ridership')
 
     # splitting data into train and test sets
@@ -160,5 +160,5 @@ def run_model_selection(k, filename, small=True):
     print(df)
 
 if __name__ == "__main__":
-    run_model_selection(5, 'pickle_files/final_data.pkl', small=True)
+    run_model_selection(5, 'pickle_files/final_data.pkl', small=False)
     

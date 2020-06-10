@@ -17,9 +17,6 @@ from pipeline import grid_search_cv, find_best_model, run_best_model, format_key
 import warnings
 warnings.filterwarnings("ignore")
 
-with open('CENSUS_DATA_COLS.json') as f:
-    DATA_COLS = json.load(f)
-
 # defining models to use
 scale = StandardScaler()
 regr = LinearRegression()
@@ -95,10 +92,7 @@ def run_model_selection(k, df, small=True, verbose=False):
     '''
     data = df
 
-    keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
-    data = data.drop(keys, axis=1)
-
-    features = data.drop(['commuting_ridership', 'GEO_ID', 'tract_area', 'num_jobs'], axis=1)
+    features = data.drop(['commuting_ridership', 'GEO_ID'], axis=1)
     target = data['commuting_ridership'].to_frame('commuting_ridership')
 
     # splitting data into train and test sets

@@ -1,6 +1,6 @@
 # Ticket to Ride Where?
 
-Ticket to Ride Where? is a machine learning model that predicts public transit ridership levels in Illinois Census tracts. The model identifies Census tracts that would use public transportation the most given an increase in transit access. This model can be used as a tool to inform decisions about where to prioritize investments in transit infrastructure.
+Ticket to Ride Where? is a machine learning project that predicts public transit ridership rates in Illinois Census tracts. The project generates a model that identifies Census tracts that would use public transportation the most given an increase in transit access. The hope is that this model can be used as a tool to inform community-based decision-making about where to prioritize investments in public transit infrastructure.
 
 ## Installation
 

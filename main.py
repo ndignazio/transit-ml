@@ -10,8 +10,8 @@ import model_selection
 import recommend as rcmd
 
 DATA_DF = pd.read_pickle("./pickle_files/final_data.pkl")
-BEST_MODEL = pd.read_pickle('best_model.pkl').steps[-1][1]
-POLY_DEGREE = pd.read_pickle('best_model.pkl').steps[-2][1].powers_[-1][-1]
+BEST_MODEL = pd.read_pickle('./pickle_files/best_model.pkl').steps[-1][1]
+POLY_DEGREE = pd.read_pickle('./pickle_files/best_model.pkl').steps[-2][1].powers_[-1][-1]
 K = 5
 
 def go():

@@ -165,6 +165,7 @@ def data_cleaning(df):
     df = df.fillna(0)
 
     #Get numeric data
+    geo_id = df['GEO_ID']
     df = df._get_numeric_data()
 
     #Turn negative values of median income into null values 
@@ -176,6 +177,7 @@ def data_cleaning(df):
     #Drop variables from ACS used for calculting features
     keys = [key for key in list(DATA_COLS.values()) if key != 'GEO_ID']
     df = df.drop(keys, axis=1)
+    df['GEO_ID'] = geo_id
 
     return df
 

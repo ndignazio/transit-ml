@@ -52,27 +52,17 @@ def get_acs_5_data(year, state, data_aliases):
     geographies = censusdata.geographies(censusdata.censusgeo([('state', state),
         ('county', '*')]), 'acs5', year)
 
-    # i = 0
     for v in list(geographies.values()):
         ( (_, _) , (_, county_code) ) = v.params()
-        # print("County code is...", county_code)
+
         df = censusdata.download("acs5", year, censusdata.censusgeo(
             [("state", state), ("county", county_code), ("tract", "*")]),
             list(data_aliases.keys()), key="e62f1cebce1c8d3afece25fc491fbec7271a588b").reset_index()
-        # print("On loop...", i)
 
-    # for year in years:
-    #     df = censusdata.download(survey_type, year,
-    #                             censusdata.censusgeo([("state", state),
-    #                                                   (subgroup_str[survey_type],
-    #                                                   subgroup_var[survey_type])]),
-    #                                                   data_columns)
-        # if data_aliases:
         df = df.rename(columns=data_aliases)
         df['year'] = year
 
         results_df = results_df.append(df, ignore_index=True)
-        # i+=1
 
     results_df = results_df.infer_objects()
 
@@ -348,7 +338,7 @@ def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
     best_model.set_params(**literal_eval(params))
     best_model.fit(x_train, y_train)
     # Save the best model Pipeline object to a pkl file
-    pkl_filename = "best_model.pkl"
+    pkl_filename = "pickle_files/best_model.pkl"
     with open(pkl_filename, 'wb') as f:
         pickle.dump(best_model, f)
     # Generate predictions and a dictionary of evaluation metrics

@@ -76,7 +76,7 @@ PIPELINES_SMALL = {'regr': Pipeline([('scale', scale),
                                ('lasso', lasso)])}
 
 
-def model_selection(k, df, small=True, verbose=False):
+def model_selection(k, df, small=False, verbose=False):
     '''
     Selects best model given preselected models and hyperparameters.
     Runs smaller model for testing if small is True.

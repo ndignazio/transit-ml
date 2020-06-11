@@ -42,13 +42,13 @@ def go():
     elif args.d:
         print('Using archived files instead of pulling all data via API')
         data_df = DATA_DF
-        pf, best_model = select.model_selection(K, data_df)
+        pf, best_model = select.run_model_selection(K, data_df)
 
         poly_degree = pf.powers_[-1][-1]
 
     else:
         data_df = dl.compile_and_merge_data()
-        pf, best_model = select.model_selection(K, data_df)
+        pf, best_model = select.run_model_selection(K, data_df)
 
         poly_degree = pf.powers_[-1][-1]
 

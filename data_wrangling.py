@@ -2,6 +2,7 @@ import pandas as pd
 import geopandas as gpd
 from pandas.io.json import json_normalize
 import requests 
+import json
 
 tracts_filepath = 'data_sources/shape_tracts/tl_2018_17_tract.shp'
 places_filepath = 'data_sources/shape_places/tl_2018_17_place.shp'

@@ -1,24 +1,37 @@
-# transit-ml
-Predicting transit ridership in areas with low transit access.
+# Ticket to Ride Where?
 
-Once you have access to your repository, clone it to your local machine using:
+Ticket to Ride Where? is a machine learning model that predicts public transit ridership levels in Illinois Census tracts. The model identifies Census tracts that would use public transportation the most given an increase in transit access. This model can be used as a tool to inform decisions about where to prioritize investments in transit infrastructure.
 
-$ git clone [repo url]
+## Installation
 
-You should be able to do this with your own GitHub credentials.
+In your preferred directory, clone the repository using git:
 
-Work flow is as follows.
+```bash
+git clone https://github.com/ndignazio/transit-ml.git
+```
+Install required packages in a virtual environment:
 
-    Create your own branch (eg 'nathan') if you don't have one.
-    $ git branch nathan
-    Make sure you are on YourBranch. To switch to your branch:
-    $ git checkout <YourBranch>
-    $ git pull origin master 
-    Work
-    $ git add ...
-    $ git commit ...
-    $ git push origin <YourBranch>
-    $ git checkout master
-    $ git merge <YourBranch>
-    $ git push origin master
+```bash
+pip3 install -r requirements.txt
+```
+## Usage
+Run using an archived version of the data and best model:
+```bash
+python3 main.py -m
+```
+Run using an archived version of the data:
+```bash
+python3 main.py -d
+```
+Run using no archives:
+```bash
+python3 main.py
+```
+
+
+## Authors
+The authors of this repository are Nathan Dignazio, Mike Feldman, and Nguyen Luong, three graduate students at the University of Chicago.
+
+## License
+[MIT](https://choosealicense.com/licenses/mit/)
 

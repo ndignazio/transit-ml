@@ -112,13 +112,18 @@ def run_model_selection(k, df, small=True, verbose=False):
         pipelines = PIPELINES
         params = PARAMS
 
-    best, results = grid_search_cv(pipelines, params, 'neg_root_mean_squared_error', k, x_train, y_train)
+    best, results = grid_search_cv(pipelines, params, 
+                                   'neg_root_mean_squared_error', k, 
+                                   x_train, y_train)
     now = datetime.datetime.now()
     filename = 'pickle_files/grid_search_results_{}.pkl'.format(str(datetime.datetime.now()))
     results.to_pickle(filename)
     (model, best_params), score = find_best_model(best)
-    results, df, best_model = run_best_model(pipelines, model, best_params, x_train, y_train, x_test, y_test)
-
+    results, df, best_model = run_best_model(pipelines, model, best_params, 
+                                             x_train, y_train, x_test, y_test)
+    
+    # If verbose is True, print information about model selection, parameters,
+    # evaluation metrics, and feature importances
     if verbose:
 
         cv_params = format_keynames(best_params)

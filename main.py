@@ -1,5 +1,5 @@
 '''
-Main file to pull data and and find best model
+File to pull data, find best model, and recommend tracts for intervention
 '''
 
 import argparse
@@ -16,7 +16,7 @@ K = 5
 
 def go():
     '''
-    Downlaod data and find best model
+    Download data, find best model, and recommend tracts for intervention
     '''
     parser = argparse.ArgumentParser(description="""Get data, find best model,
     and recommend tracts for review""")

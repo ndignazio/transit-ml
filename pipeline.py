@@ -246,24 +246,28 @@ def grid_search_cv(pipelines, params, scoring, cv, x_train, y_train):
 
     return best, results
 
-def find_best_model(best, neg=True):
+def find_best_model(best, max_=True):
     '''
-    select best model out of dictionary of models, parameters, and scores
-    based on best score.
+    Select the best model out of dictionary of models, parameters, and scores
+    based on score. If max_ is True, the best score is the maximum score. 
+    Consult the documentation of preferred evaluation metric to determine
+    whether to maximize or minimize scores.
+
     Input: best (dict) a dictionary with keys as model names and values as
     tuples with the first tuple entry as a dictionary of model parameters 
     and the second tuple entry as the mean test score of the model.
+
     Returns: choice (tuple) the best model, parameters, and score
     '''
     model = None
     choice = max(best.values())
-    if neg:
+    if max_:
         choice = min(best.values())
 
     if len(best) > 1:
 
         for model_params, score in best.items():
-            if neg:
+            if max_:
                 if score > choice:
                     choice = score
                     model = model_params
@@ -280,55 +284,81 @@ def find_best_model(best, neg=True):
 def format_keynames(params):
     '''
     Format keynames from parameter dictionary of sklearn Pipeline.
-    Input: params (dict) parameters formatted like so: 
+
+    Input: params (dict OR str) parameters formatted like so: 
            '<named_step>__<parameter>'
+
     Returns: params (dict) parameter dictionary with '<named_step>__'
     removed
     '''
     if not isinstance(params, dict):
         params = literal_eval(params)
+
     for key in params.keys():
         new_key = key.split("_")[-1]
         params[new_key] = params.pop(key)
+        
     return params
+
+def get_feature_importances(pipeline, mod, column_names):
+    '''
+    Generate dataframe of feature importances with corresponding variable names.
+
+    Inputs: model (Pipeline) Pipeline object of machine learning model
+    columns_names (list) list of column names in dataset. 
+
+    Returns: (DataFrame) df of feature importances with variable names
+    '''
+    tuples = []
+    # Get feature names based on polynomial degree
+    feature_names = pipeline.named_steps['pf'].get_feature_names(column_names)
+
+    if mod == 'randomforest' or mod == 'decisiontree':
+        for i, name in enumerate(feature_names):
+            tuples.append((name, pipeline.named_steps[mod].feature_importances_[i]))
+    else:
+        for i, name in enumerate(feature_names):
+            tuples.append((name, pipeline.named_steps[mod].coef_[i]))
+
+    # Sort feature importances in descending order and remove unimportant features
+    sorted_by_coef = sorted(tuples, key=lambda tup: abs(tup[1]), reverse=True)
+    df = pd.DataFrame(sorted_by_coef, columns=['label', 'coefficient'])
+    df = df[df['coefficient'] != 0]
+
+    return df
 
 
 def run_best_model(pipelines, mod, params, x_train, y_train, x_test, y_test):
-    #{'pf__degree': 2, 'randomforest__criterion': 'mae', 'randomforest__n_estimators': 300, 'randomforest__max_depth': 15}
     '''
     Runs the best model selected from the find_best_model function.
+
     Inputs: pipelines (dict) dictionary of pipeline objects
     mod (str) type of model corresponding to pipelines dictionary
-    params (dict) parameters of the best model
+    params (str) string format of dictionary of best model's parameters
     x_train, y_train, x_test, y_test (4 Pandas DataFrames) training and testing 
     data
-    Returns: tuple
+
+    Returns: (tuple)
     first element: (dict) results of running the model on entire dataset
     second element: (DataFrame) nonzero feature importances of model sorted in
     ascending order
+    third element: (Pipeline) the sklearn Pipeline for the best model
     '''
     best_model = pipelines[mod]
     best_model.set_params(**literal_eval(params))
     best_model.fit(x_train, y_train)
+    # Save the best model Pipeline object to a pkl file
     pkl_filename = "best_model.pkl"
     with open(pkl_filename, 'wb') as f:
         pickle.dump(best_model, f)
+    # Generate predictions and a dictionary of evaluation metrics
     predictions = best_model.predict(x_test)
     metrics = {}     
     metrics['Model'] = mod                                   
     metrics['RMSE'] = '{0:.3f}'.format(sqrt(mean_squared_error(y_test, predictions))) 
     metrics['R2'] = '{0:.3f}'.format(r2_score(y_test, predictions))
-    tuples = []
-    feature_names = best_model.named_steps['pf'].get_feature_names(x_train.columns)
-    if mod == 'randomforest' or mod == 'decisiontree':
-        for i, name in enumerate(feature_names):
-            tuples.append((name, best_model.named_steps[mod].feature_importances_[i]))
-    else:
-        for i, name in enumerate(feature_names):
-            tuples.append((name, best_model.named_steps[mod].coef_[i]))
-
-    sorted_by_coef = sorted(tuples, key=lambda tup: abs(tup[1]), reverse=True)
-    df = pd.DataFrame(sorted_by_coef, columns=['label', 'coefficient'])
-    df = df[df['coefficient'] != 0]
+    # Generate DataFrame of feature importances
+    df = get_feature_importances(best_model, mod, x_train.columns)
+    # Convert params to dictionary
     params = format_keynames(params)
     return {**metrics, **params}, df, best_model

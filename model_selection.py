@@ -1,6 +1,5 @@
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.linear_model import LinearRegression, Lasso, Ridge, ElasticNet
 from sklearn.ensemble import RandomForestRegressor
@@ -13,7 +12,7 @@ from math import sqrt
 from ast import literal_eval
 import datetime
 import json
-from pipeline import grid_search_cv, find_best_model, run_best_model, format_keynames, read_data
+from pipeline import grid_search_cv, find_best_model, run_best_model, format_keynames
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -77,18 +76,19 @@ PIPELINES_SMALL = {'regr': Pipeline([('scale', scale),
                                ('lasso', lasso)])}
 
 
-def run_model_selection(k, df, small=True, verbose=False):
+def model_selection(k, df, small=True, verbose=False):
     '''
     Selects best model given preselected models and hyperparameters.
     Runs smaller model for testing if small is True.
     Inputs: k (int) specification of number of folds for k-fold cross-
     validation
-    x_train, y_train, x_test, y_test (DataFrames) training and testing data
+    df (DataFrame) pre-cleaned data
     small (boolean) a flag indicating whether the user wants to use a smaller
     pipeline for testing or the larger pipeline
-    Returns: Nothing. Prints grid search results and the results of running 
-    the best model from grid search on the entire dataset, including
-    evaluation metrics and feature importances
+    verbose (boolean) a flag indicating whether the user wants to see formatted
+    output of the model in addition to return values
+    Returns: (tuple) polynomial features and model steps of Pipeline object for the best
+    model
     '''
     data = df
 
